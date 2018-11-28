@@ -7,12 +7,10 @@ using LinearAlgebra
 
 using SIMD
 
-# hope springs eternal in the coder's breast,
-# for code rarely is but to be threaded
 using Base.Threads
 
 # steal some internals
-using LinearAlgebra: has_offset_axes, lapack_size
+using LinearAlgebra: has_offset_axes, lapack_size, BlasInt, checknonsingular
 
 # stuff to extend
 import LinearAlgebra: rmul!, lmul!, ldiv!
@@ -20,14 +18,58 @@ import LinearAlgebra: rmul!, lmul!, ldiv!
 
 # most public functions are defined in LinearAlgebra
 
-####################################
-# SIMD stuff
+################################################################
+# SIMD config
 
 # width of SIMD structures to use
 const Npref = 8
-# FIXME: select at install time.  Probably wants CPUID.
-# Using Npref = 8 on a system w/ 256b SIMD regs imposes a 10% penalty
-# for Double64 but presumably gives better performance on 512b systems.
+# Using Npref = 8 on a system w/ 256b SIMD registers imposes a 10% penalty
+# for modest size Double64 problems.
+# There is no obvious penalty for large problems, and this
+# presumably gives better performance on 512b systems.
+# Kudos to the LLVM people.
+
+# Multi-threading config
+
+################################################################
+# Multi-threading internals
+
+# TODO: implement set_num_threads
+
+const gemm_mt_threshold = Ref(64.0)
+
+const mt_thresholds = Dict{Symbol,Any}(
+:gemm => gemm_mt_threshold
+)
+
+"""
+set_mt_threshold(n::Real, problem::Symbol)
+
+Set the size threshold for multi-threading in the DoubleBLAS1 package to `n`,
+for matrix operations of class `problem`.
+"""
+function set_mt_threshold(n::Real, problem::Symbol)
+    if problem ∈ keys(mt_thresholds)
+        destref = mt_thresholds[problem]
+        destref[] = Float64(n)
+    else
+        throw(ArgumentError("unrecognized problem key $problem: valid keys are $(keys(mt_thresholds))"))
+    end
+    nothing
+end
+
+function get_mt_threshold(problem::Symbol)
+    if problem ∈ keys(mt_thresholds)
+        srcref = mt_thresholds[problem]
+    else
+        throw(ArgumentError("unrecognized problem key $problem: valid keys are $(keys(mt_thresholds))"))
+    end
+    srcref = mt_thresholds[problem]
+    srcref[]
+end
+
+################################################################
+# SIMD internals
 
 @generated function vgethi(xv::StridedVector{DoubleFloat{T}},i0,::Type{Vec{N,T}}) where {N,T}
     quote
