@@ -67,7 +67,7 @@ end
 ################################################################
 # SIMD internals
 
-@generated function vgethi(xv::StridedVector{DoubleFloat{T}},i0,::Type{Vec{N,T}}) where {N,T}
+@generated function vgethi(xv::StridedVecOrMat{DoubleFloat{T}},i0,::Type{Vec{N,T}}) where {N,T}
     quote
         $(Expr(:meta, :inline))
         $(Expr(:meta, :inbounds))
@@ -75,7 +75,7 @@ end
     end
 end
 
-@generated function vgetlo(xv::StridedVector{DoubleFloat{T}},i0,::Type{Vec{N,T}}) where {N,T}
+@generated function vgetlo(xv::StridedVecOrMat{DoubleFloat{T}},i0,::Type{Vec{N,T}}) where {N,T}
     quote
         $(Expr(:meta, :inline))
         $(Expr(:meta, :inbounds))
@@ -83,14 +83,14 @@ end
     end
 end
 
-@inline function vputhilo!(xv::StridedVector{DoubleFloat{T}},i0,
+@inline function vputhilo!(xv::StridedVecOrMat{DoubleFloat{T}},i0,
                               zhi::Vec{N,T}, zlo::Vec{N,T}) where {N,T}
     @inbounds for i=1:N
         xv[i0+i] = DoubleFloat{T}((zhi[i],zlo[i]))
     end
 end
 
-@generated function vgethire(xv::StridedVector{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
+@generated function vgethire(xv::StridedVecOrMat{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
     quote
         $(Expr(:meta, :inline))
         $(Expr(:meta, :inbounds))
@@ -98,7 +98,7 @@ end
     end
 end
 
-@generated function vgetlore(xv::StridedVector{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
+@generated function vgetlore(xv::StridedVecOrMat{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
     quote
         $(Expr(:meta, :inline))
         $(Expr(:meta, :inbounds))
@@ -106,7 +106,7 @@ end
     end
 end
 
-@generated function vgethiim(xv::StridedVector{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
+@generated function vgethiim(xv::StridedVecOrMat{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
     quote
         $(Expr(:meta, :inline))
         $(Expr(:meta, :inbounds))
@@ -114,7 +114,7 @@ end
     end
 end
 
-@generated function vgetloim(xv::StridedVector{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
+@generated function vgetloim(xv::StridedVecOrMat{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
     quote
         $(Expr(:meta, :inline))
         $(Expr(:meta, :inbounds))

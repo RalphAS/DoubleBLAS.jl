@@ -80,6 +80,7 @@ function _generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
         At = A
     end
 
+    li = LinearIndices(At)
     Bline = zeros(DoubleFloat{T},mB)
     for j = 1:nB
         @inbounds begin
@@ -93,7 +94,8 @@ function _generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
                 end
             end
             for i=1:mA
-                asum = dot(view(At,:,i),Bline,Vec{Npref,T})
+                # asum = _dot(view(At,:,i),Bline,Vec{Npref,T})
+                asum = _dot(mB,At,li[1,i],Bline,Vec{Npref,T})
                 C[i,j] = asum
             end
         end
@@ -104,25 +106,29 @@ end
 # isolate the middle loops so that the inference engine has a fair chance
 
 function gemm_kernN(C::StridedMatrix{DoubleFloat{T}}, At, B, Bline, j, mB, mA) where T
+    li = LinearIndices(At)
     @inbounds begin
         @simd for k = 1:mB
             Bline[k] = B[k,j]
         end
         for i=1:mA
-            asum = dot(view(At,:,i),Bline,Vec{Npref,T})
+#            asum = _dot(view(At,:,i),Bline,Vec{Npref,T})
+            asum = _dot(mB,At,li[1,i],Bline,Vec{Npref,T})
             C[i,j] = asum
         end
     end
 end
 
 function gemm_kernT(C::StridedMatrix{DoubleFloat{T}}, At, B, Bline, j, mB, mA) where T
+    li = LinearIndices(At)
     @inbounds begin
         @simd for k = 1:mB
             Bline[k] = B[j,k]
         end
     end
     for i=1:mA
-        asum = dot(view(At,:,i),Bline,Vec{Npref,T})
+        # asum = _dot(view(At,:,i),Bline,Vec{Npref,T})
+        asum = _dot(mB,At,li[1,i],Bline,Vec{Npref,T})
         C[i,j] = asum
     end
 end
@@ -197,10 +203,10 @@ function generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
                 end
             end
             for i=1:mA
-                asum1 = dot(view(reAt,:,i),reBline,Vec{Npref,T})
-                asum2 = dot(view(reAt,:,i),imBline,Vec{Npref,T})
-                asum3 = dot(view(imAt,:,i),reBline,Vec{Npref,T})
-                asum4 = dot(view(imAt,:,i),imBline,Vec{Npref,T})
+                asum1 = _dot(view(reAt,:,i),reBline,Vec{Npref,T})
+                asum2 = _dot(view(reAt,:,i),imBline,Vec{Npref,T})
+                asum3 = _dot(view(imAt,:,i),reBline,Vec{Npref,T})
+                asum4 = _dot(view(imAt,:,i),imBline,Vec{Npref,T})
                 C[i,j] = complex(asum1-asum4, asum2+asum3)
             end
         end

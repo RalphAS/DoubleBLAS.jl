@@ -10,6 +10,8 @@ end
 
 Random.seed!(1234)
 
+include("level1.jl")
+
 function gemmcheck(T,m,n,k,tol)
     A = rand(T,m,k)
     B = rand(T,k,n)
