@@ -1,7 +1,12 @@
-using DoubleBLAS1
+using DoubleBLAS
 using LinearAlgebra
 using DoubleFloats: Double32, Double64
 using Test, Random
+
+let nt = Threads.nthreads()
+    nts = Sys.CPU_THREADS
+    @info "running tests with $nt threads of $nts"
+end
 
 Random.seed!(1234)
 
@@ -28,16 +33,31 @@ function gemmcheck(T,m,n,k,tol)
     @test opnorm(Cb - big.(C),1) / (opnorm(A,1) * opnorm(B,1)) < tol * k * e
 end
 
+function lucheck(T,k,tol)
+    A = rand(T,k,k)
+    Ab = big.(A)
+    F = lu(A)
+    Fb = lu(Ab)
+    b = rand(T,k)
+    x = F \ b
+    xb = Fb \ big.(b)
+    e = (T <: Complex) ? eps(real(T)) : eps(T)
+    @test norm(x - xb) / norm(x) < tol * k * e
+
+    Ai = inv(A)
+    @test opnorm(Ai * A - I,1) / opnorm(A,1) < tol * k * e
+end
+
 @testset "gemm $T" for T in (Double64, Double32)
     # make sure to exercise the clean-up loops
     mA, nA, nB = 129, 67, 33
     gemmcheck(T,mA,nB,nA,1)
     # also run below MT threshold
     if Threads.nthreads() > 1
-        t = DoubleBLAS1.get_mt_threshold(:gemm)
-        DoubleBLAS1.set_mt_threshold(1.0e12,:gemm)
+        t = DoubleBLAS.get_mt_threshold(:gemm)
+        DoubleBLAS.set_mt_threshold(1.0e12,:gemm)
         gemmcheck(T,mA,nB,nA,1)
-        DoubleBLAS1.set_mt_threshold(t,:gemm)
+        DoubleBLAS.set_mt_threshold(t,:gemm)
     end
 end
 
@@ -45,5 +65,18 @@ end
     # make sure to exercise the clean-up loops
     mA, nA, nB = 129, 67, 33
     gemmcheck(T,mA,nB,nA,1)
+end
+
+@testset "lu $T" for T in (Double64, Double32)
+    # make sure to exercise the clean-up loops
+    nA = 67
+    lucheck(T,nA,10)
+    # also run below MT threshold
+    if Threads.nthreads() > 1
+        t = DoubleBLAS.get_mt_threshold(:lu)
+        DoubleBLAS.set_mt_threshold(1.0e12,:lu)
+        lucheck(T,nA,10)
+        DoubleBLAS.set_mt_threshold(t,:lu)
+    end
 end
 

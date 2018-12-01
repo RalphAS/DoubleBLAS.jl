@@ -1,4 +1,4 @@
-module DoubleBLAS1
+module DoubleBLAS
 # support for (fairly) efficient Linear Algebra with DoubleFloats
 
 #FIXME: change to explicit lists because namespace pollution is epidemic
@@ -36,16 +36,12 @@ const Npref = 8
 
 # TODO: implement set_num_threads
 
-const gemm_mt_threshold = Ref(64.0)
-
-const mt_thresholds = Dict{Symbol,Any}(
-:gemm => gemm_mt_threshold
-)
+const mt_thresholds = Dict{Symbol,Any}()
 
 """
 set_mt_threshold(n::Real, problem::Symbol)
 
-Set the size threshold for multi-threading in the DoubleBLAS1 package to `n`,
+Set the size threshold for multi-threading in the DoubleBLAS package to `n`,
 for matrix operations of class `problem`.
 """
 function set_mt_threshold(n::Real, problem::Symbol)
@@ -87,6 +83,13 @@ end
     end
 end
 
+@inline function vputhilo!(xv::StridedVector{DoubleFloat{T}},i0,
+                              zhi::Vec{N,T}, zlo::Vec{N,T}) where {N,T}
+    @inbounds for i=1:N
+        xv[i0+i] = DoubleFloat{T}((zhi[i],zlo[i]))
+    end
+end
+
 @generated function vgethire(xv::StridedVector{Complex{DoubleFloat{T}}},i0,::Type{Vec{N,T}}) where {N,T}
     quote
         $(Expr(:meta, :inline))
@@ -124,4 +127,8 @@ include("ops.jl")
 include("dots.jl")
 
 include("gemm.jl")
+
+include("axpy.jl")
+include("triangular.jl")
+include("lu.jl")
 end # module

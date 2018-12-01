@@ -1,5 +1,8 @@
 import LinearAlgebra.generic_matmatmul!
 
+const gemm_mt_threshold = Ref(64.0)
+mt_thresholds[:gemm] = gemm_mt_threshold;
+
 function generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
              tA::AbstractChar, tB::AbstractChar,
              A::StridedMatrix{DoubleFloat{T}},

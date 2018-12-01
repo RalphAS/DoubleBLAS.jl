@@ -1,6 +1,6 @@
-The DoubleBLAS1.jl package is licensed under the MIT "Expat" License:
+The DoubleBLAS.jl package is licensed under the MIT "Expat" License:
 
-> Copyright (c) 2018: the developers of DoubleBLAS1.jl and Julia Math
+> Copyright (c) 2018: the developers of DoubleBLAS.jl and Julia Math
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
