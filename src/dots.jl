@@ -1,3 +1,5 @@
+import LinearAlgebra.dot
+
 function dot(xv::StridedVector{DoubleFloat{T}}, yv::StridedVector{DoubleFloat{T}})  where {N, T <: AbstractFloat}
     _dot(xv,yv,Vec{Npref,T})
 end

@@ -11,6 +11,7 @@ function generic_lufact!(A::StridedMatrix{DoubleFloat{T}}, ::Val{Pivot} = Val(tr
     ipiv = Vector{BlasInt}(undef, minmn)
     use_threads = (nthreads() > 1) &&
         (Float64(m)*Float64(n) > lu_mt_threshold[])
+    liA = LinearIndices(A)
 
     @inbounds begin
         for k = 1:minmn
@@ -49,7 +50,8 @@ function generic_lufact!(A::StridedMatrix{DoubleFloat{T}}, ::Val{Pivot} = Val(tr
                 _mt_lu_loop(m,n,k,A,Vec{Npref,T})
             else
                 for j = k+1:n
-                    axpy!(-A[k,j],view(A,k+1:m,k),view(A,k+1:m,j),Vec{Npref,T})
+                    #axpy!(-A[k,j],view(A,k+1:m,k),view(A,k+1:m,j),Vec{Npref,T})
+                    _axpy!(m-k,-A[k,j],A,liA[k+1,k],A,liA[k+1,j],Vec{Npref,T})
                 end
             end
         end
@@ -61,9 +63,11 @@ end
 # Someday @threads will not stupefy the inference engine.
 
 @noinline function _mt_lu_loop(m,n,k,A,VT)
+    liA = LinearIndices(A)
     @threads for j = k+1:n
         @inbounds begin
-            axpy!(-A[k,j],view(A,k+1:m,k),view(A,k+1:m,j),VT)
+            # axpy!(-A[k,j],view(A,k+1:m,k),view(A,k+1:m,j),VT)
+            _axpy!(m-k,-A[k,j],A,liA[k+1,k],A,liA[k+1,j],VT)
         end
     end
 end
