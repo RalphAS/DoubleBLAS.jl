@@ -17,6 +17,21 @@ end
     return hi, lo
 end
 
+# aka twodiff
+@inline function sub_(x::Vec{N,T}, y::Vec{N,T}) where {N, T<:AbstractFloat}
+    hi  = x - y
+    v = hi - x
+    lo = (x - (hi - v)) - (y + v)
+    return hi, lo
+end
+
+# aka quicktwodiff
+@inline function sub_hilo_(x::Vec{N,T}, y::Vec{N,T}) where {N, T<:AbstractFloat}
+    hi = x - y
+    lo = (x - hi) - y
+    return hi, lo
+end
+
 @inline function mul_(x::Vec{N,T}, y::Vec{N,T}) where {N, T<:AbstractFloat}
     hi = x * y
     lo = fma(x, y, -hi)
@@ -26,6 +41,16 @@ end
 @inline function dfvadd(xhi::Vec{N,T}, xlo::Vec{N,T}, yhi::Vec{N,T}, ylo::Vec{N,T}) where {N,T<:AbstractFloat}
     hi, lo = add_(xhi, yhi)
     thi, tlo = add_(xlo, ylo)
+    c = lo + thi
+    hi, lo = add_hilo_(hi, c)
+    c = tlo + lo
+    hi, lo = add_hilo_(hi, c)
+    return hi, lo
+end
+
+@inline function dfvsub(xhi::Vec{N,T}, xlo::Vec{N,T}, yhi::Vec{N,T}, ylo::Vec{N,T}) where {N,T<:AbstractFloat}
+    hi, lo = sub_(xhi, yhi)
+    thi, tlo = sub_(xlo, ylo)
     c = lo + thi
     hi, lo = add_hilo_(hi, c)
     c = tlo + lo

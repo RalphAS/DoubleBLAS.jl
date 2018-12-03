@@ -122,6 +122,15 @@ end
     end
 end
 
+@inline function vputhilo!(xv::StridedVecOrMat{Complex{DoubleFloat{T}}},i0,
+                           zrhi::Vec{N,T}, zrlo::Vec{N,T},
+                           zihi::Vec{N,T}, zilo::Vec{N,T}) where {N,T}
+    @inbounds for i=1:N
+        xv[i0+i] = complex(DoubleFloat{T}((zrhi[i],zrlo[i])),
+                           DoubleFloat{T}((zihi[i],zilo[i])))
+    end
+end
+
 
 include("ops.jl")
 include("dots.jl")

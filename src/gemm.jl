@@ -179,6 +179,16 @@ function generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
             end
         end
     end
+    if (nthreads() > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
+        _mt_gemmwrap(C,mA,mB,nB,tB,reAt,imAt,B,Vec{Npref,T})
+    else
+        _gemmcore(C,mA,mB,nB,tB,reAt,imAt,B,Vec{Npref,T})
+    end
+    C
+end
+
+function _gemmcore(C::AbstractMatrix{Complex{DoubleFloat{T}}},
+                   mA,mB,nB,tB,reAt,imAt,B,VT) where {T <: AbstractFloat}
     reBline = zeros(DoubleFloat{T},mB)
     imBline = zeros(DoubleFloat{T},mB)
     for j = 1:nB
@@ -203,13 +213,96 @@ function generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
                 end
             end
             for i=1:mA
-                asum1 = _dot(view(reAt,:,i),reBline,Vec{Npref,T})
-                asum2 = _dot(view(reAt,:,i),imBline,Vec{Npref,T})
-                asum3 = _dot(view(imAt,:,i),reBline,Vec{Npref,T})
-                asum4 = _dot(view(imAt,:,i),imBline,Vec{Npref,T})
+                asum1 = _dot(view(reAt,:,i),reBline,VT)
+                asum2 = _dot(view(reAt,:,i),imBline,VT)
+                asum3 = _dot(view(imAt,:,i),reBline,VT)
+                asum4 = _dot(view(imAt,:,i),imBline,VT)
                 C[i,j] = complex(asum1-asum4, asum2+asum3)
             end
         end
     end
-    C
+end
+
+function _mt_gemmwrap(C::AbstractMatrix{Complex{DoubleFloat{T}}},
+                   mA,mB,nB,tB,reAt,imAt,B,VT) where {T <: AbstractFloat}
+    nt = nthreads()
+    reBlines = [zeros(DoubleFloat{T},mB) for id in 1:nt]
+    imBlines = [zeros(DoubleFloat{T},mB) for id in 1:nt]
+    if tB == 'N'
+        @threads for j = 1:nB
+            id = threadid()
+            reBline = reBlines[id]
+            imBline = imBlines[id]
+            _mt_gemmcoreN(C, reAt, imAt, B, reBline, imBline, j, mB, mA, VT)
+        end
+    elseif tB == 'C'
+        @threads for j = 1:nB
+            id = threadid()
+            reBline = reBlines[id]
+            imBline = imBlines[id]
+            _mt_gemmcoreC(C, reAt, imAt, B, reBline, imBline, j, mB, mA, VT)
+        end
+    elseif tB == 'T'
+        @threads for j = 1:nB
+            id = threadid()
+            reBline = reBlines[id]
+            imBline = imBlines[id]
+            _mt_gemmcoreT(C, reAt, imAt, B, reBline, imBline, j, mB, mA, VT)
+        end
+    end
+    nothing
+end
+
+function _mt_gemmcoreN(C, reAt, imAt, B, reBline, imBline, j, mB, mA, VT)
+    @inbounds begin
+        @simd for k = 1:mB
+            z = B[k,j]
+            reBline[k] = z.re
+            imBline[k] = z.im
+        end
+        for i=1:mA
+            asum1 = _dot(view(reAt,:,i),reBline,VT)
+            asum2 = _dot(view(reAt,:,i),imBline,VT)
+            asum3 = _dot(view(imAt,:,i),reBline,VT)
+            asum4 = _dot(view(imAt,:,i),imBline,VT)
+            C[i,j] = complex(asum1-asum4, asum2+asum3)
+        end
+    end
+    nothing
+end
+
+function _mt_gemmcoreT(C, reAt, imAt, B, reBline, imBline, j, mB, mA, VT)
+    @inbounds begin
+        @simd for k = 1:mB
+            z = B[j,k]
+            reBline[k] = z.re
+            imBline[k] = z.im
+        end
+        for i=1:mA
+            asum1 = _dot(view(reAt,:,i),reBline,VT)
+            asum2 = _dot(view(reAt,:,i),imBline,VT)
+            asum3 = _dot(view(imAt,:,i),reBline,VT)
+            asum4 = _dot(view(imAt,:,i),imBline,VT)
+            C[i,j] = complex(asum1-asum4, asum2+asum3)
+        end
+    end
+    nothing
+end
+
+function _mt_gemmcoreC(C, reAt, imAt, B, reBline, imBline, j, mB, mA, VT)
+    @inbounds begin
+        @simd for k = 1:mB
+            z = B[j,k]
+            reBline[k] = z.re
+            imBline[k] = -z.im
+        end
+        for i=1:mA
+            asum1 = _dot(view(reAt,:,i),reBline,VT)
+            asum2 = _dot(view(reAt,:,i),imBline,VT)
+            asum3 = _dot(view(imAt,:,i),reBline,VT)
+            asum4 = _dot(view(imAt,:,i),imBline,VT)
+            C[i,j] = complex(asum1-asum4, asum2+asum3)
+        end
+    end
+    nothing
 end

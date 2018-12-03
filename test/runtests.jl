@@ -33,6 +33,8 @@ function gemmcheck(T,m,n,k,tol)
     C = Ar' * Br'
     Cb = Abr' * Bbr'
     @test opnorm(Cb - big.(C),1) / (opnorm(A,1) * opnorm(B,1)) < tol * k * e
+
+    #FIXME: needs cases w/ simple transpose for complex types
 end
 
 function lucheck(T,k,tol)
@@ -67,6 +69,13 @@ end
     # make sure to exercise the clean-up loops
     mA, nA, nB = 129, 67, 33
     gemmcheck(T,mA,nB,nA,1)
+    # also run below MT threshold
+    if Threads.nthreads() > 1
+        t = DoubleBLAS.get_mt_threshold(:gemm)
+        DoubleBLAS.set_mt_threshold(1.0e12,:gemm)
+        gemmcheck(T,mA,nB,nA,1)
+        DoubleBLAS.set_mt_threshold(t,:gemm)
+    end
 end
 
 @testset "lu $T" for T in (Double64, Double32)
