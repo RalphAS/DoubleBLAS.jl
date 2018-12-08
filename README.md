@@ -10,14 +10,25 @@
 [![codecov.io](http://codecov.io/github/RalphAS/DoubleBLAS.jl/coverage.svg?branch=master)](http://codecov.io/github/RalphAS/DoubleBLAS.jl?branch=master)
 
 This package is a draft implementation of SIMD-based basic linear algebra
-routines for matrices with element types from DoubleFloats.jl.
+routines for matrices with element types from [DoubleFloats.jl](https://github.com/JuliaMath/DoubleFloats.jl).
 
-Some design decisions and implementation notes:
-* The API is intended to be seamlessly compatible with the LinearAlgebra standard library.
-* Matrices (sometimes fully dense) are copied and/or materialized whenever it helps, since we expect use of DoubleFloats for huge problems to be rare.
-* Basic DoubleFloat ops are expensive, so only moderate attention has been given to cache management.
-* The bottlenecks in our code are likely due to instruction latency. Someday experiments with unrolling might be worthwhile.
+The API is intended to be seamlessly compatible with the
+`LinearAlgebra` standard library. That is, `using DoubleBLAS` will
+extend various methods from `LinearAlgebra` so that various operations
+such as matrix multiplication, LU and Cholesky factorization, and
+`inv()` will employ more efficient methods than the generic ones.
 
+
+## Multi-threading
+
+Multi-threading (MT) is enabled for some sufficiently large problems.
+We use `Base.Threads` (q.v. in the Julia manual), limited by the
+`JULIA_NUM_THREADS` environment variable. On many systems there is
+significant overhead for MT, so heuristic thresholds for switching
+from simple versions to MT are provided. These may be adjusted with
+the `set_mt_threshold(n::Real, problem::Symbol)` function.  Someday
+default values for a given system might be set during package
+installation or initialization, but currently they are notional.
 
 # Acknowledgements
 Most of the arithmetic was copied from DoubleFloats.jl and

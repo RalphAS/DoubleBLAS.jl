@@ -40,10 +40,10 @@ end
 
 function dot(xv::StridedVector{Complex{DoubleFloat{T}}},
              yv::StridedVector{Complex{DoubleFloat{T}}})  where {N, T <: AbstractFloat}
-    _dotc(xv,yv,Vec{Npref,T})
+    _dot(xv,yv,Vec{Npref,T})
 end
 
-function _dotc(xv::StridedVector{Complex{DoubleFloat{T}}}, yv::StridedVector{Complex{DoubleFloat{T}}},::Type{Vec{N,T}},tA=:c) where {N, T <: AbstractFloat}
+function _dot(xv::StridedVector{Complex{DoubleFloat{T}}}, yv::StridedVector{Complex{DoubleFloat{T}}},::Type{Vec{N,T}},tA=:c) where {N, T <: AbstractFloat}
      n = length(xv)
     (length(yv) == n) || throw(DimensionMismatch("arguments must have equal lengths"))
     z = zero(T)
@@ -111,22 +111,24 @@ end
 # warning: unsafe indexing
 function _dot(n::Integer,
               xv::StridedVecOrMat{DoubleFloat{T}}, ix1::Integer,
-              yv::StridedVector{DoubleFloat{T}},
+              yv::StridedVecOrMat{DoubleFloat{T}}, iy1::Integer,
               ::Type{Vec{N,T}}) where {N, T <: AbstractFloat}
     z = zero(T)
     shi = Vec{N,T}(0)
     slo = Vec{N,T}(0)
     nd,nr = divrem(n, N)
     ixoff = ix1-1
+    iyoff = iy1-1
     @inbounds begin
         for i in 1:nd
             i0=(i-1)*N
             ix0=ixoff + i0
+            iy0=iyoff + i0
 
             xhi = vgethi(xv,ix0,Vec{N,T})
             xlo = vgetlo(xv,ix0,Vec{N,T})
-            yhi = vgethi(yv,i0,Vec{N,T})
-            ylo = vgetlo(yv,i0,Vec{N,T})
+            yhi = vgethi(yv,iy0,Vec{N,T})
+            ylo = vgetlo(yv,iy0,Vec{N,T})
 
             zhi, zlo = dfvmul(xhi, xlo, yhi, ylo)
             shi, slo = dfvadd(shi, slo, zhi, zlo)
@@ -140,7 +142,7 @@ function _dot(n::Integer,
     (nr == 0) && return s
     @inbounds begin
         @simd for i in (nd*N)+1:n
-            s += xv[ixoff+i]*yv[i]
+            s += xv[ixoff+i]*yv[iyoff+i]
         end
     end
     s

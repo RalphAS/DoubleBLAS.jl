@@ -37,21 +37,6 @@ function gemmcheck(T,m,n,k,tol)
     #FIXME: needs cases w/ simple transpose for complex types
 end
 
-function lucheck(T,k,tol)
-    A = rand(T,k,k)
-    Ab = big.(A)
-    F = lu(A)
-    Fb = lu(Ab)
-    b = rand(T,k)
-    x = F \ b
-    xb = Fb \ big.(b)
-    e = (T <: Complex) ? eps(real(T)) : eps(T)
-    @test norm(x - xb) / norm(x) < tol * k * e
-
-    Ai = inv(A)
-    @test opnorm(Ai * A - I,1) / opnorm(A,1) < tol * k * e
-end
-
 @testset "gemm $T" for T in (Double64, Double32)
     # make sure to exercise the clean-up loops
     mA, nA, nB = 129, 67, 33
@@ -78,7 +63,26 @@ end
     end
 end
 
-@testset "lu $T" for T in (Double64, Double32)
+function lucheck(T,k,tol)
+    A = rand(T,k,k)
+    if (T <: Complex)
+        κ = cond(ComplexF64.(A),Inf)
+    else
+        κ = cond(Float64.(A),Inf)
+    end
+    F = lu(A)
+    xb = rand(T,k)
+    b = A * xb
+    x = F \ b
+    e = eps(real(T))
+    @test norm(x - xb, Inf) / norm(xb, Inf) < tol * κ * e
+
+    Ai = inv(A)
+    # CHECKME: why did I pick this norm?
+    @test opnorm(Ai * A - I, 1) / opnorm(A, 1) < tol * k * e
+end
+
+@testset "lu $T" for T in (Double64, Double32, Complex{Double64})
     # make sure to exercise the clean-up loops
     nA = 67
     lucheck(T,nA,10)
@@ -91,3 +95,39 @@ end
     end
 end
 
+function cholcheck(T,k,tol)
+    A = rand(T,k,k)
+    A = A * adjoint(A)
+    # noncommutative multiplication means we need to be extra thorough
+    A = A + adjoint(A)
+    if (T <: Complex)
+        κ = cond(ComplexF64.(A),Inf)
+    else
+        κ = cond(Float64.(A),Inf)
+    end
+    F = cholesky(A)
+    xb = rand(T,k)
+    b = A * xb
+    x = F \ b
+    e = eps(real(T))
+    @test norm(x - xb,Inf) / norm(xb,Inf) < tol * κ * e
+
+    C, info = LinearAlgebra._chol!(copy(A), LowerTriangular)
+    F = LinearAlgebra.Cholesky(C.data,'L',info)
+    x = F \ b
+    @test norm(x - xb,Inf) / norm(xb,Inf) < tol * κ * e
+end
+
+@testset "chol $T" for T in (Double64, Double32, Complex{Double64})
+    # make sure to exercise the clean-up loops
+    nA = 67
+    tol = 10
+    cholcheck(T,nA,tol)
+    # also run below MT threshold
+    if Threads.nthreads() > 1
+        t = DoubleBLAS.get_mt_threshold(:chol)
+        DoubleBLAS.set_mt_threshold(1.0e12,:chol)
+        cholcheck(T,nA,tol)
+        DoubleBLAS.set_mt_threshold(t,:chol)
+    end
+end

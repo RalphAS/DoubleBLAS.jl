@@ -134,10 +134,11 @@ end
 
 include("ops.jl")
 include("dots.jl")
+include("axpy.jl")
 
 include("gemm.jl")
-
-include("axpy.jl")
 include("triangular.jl")
+
 include("lu.jl")
+include("chol.jl")
 end # module

@@ -95,7 +95,7 @@ function _generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
             end
             for i=1:mA
                 # asum = _dot(view(At,:,i),Bline,Vec{Npref,T})
-                asum = _dot(mB,At,li[1,i],Bline,Vec{Npref,T})
+                asum = _dot(mB,At,li[1,i],Bline,1,Vec{Npref,T})
                 C[i,j] = asum
             end
         end
@@ -113,7 +113,7 @@ function gemm_kernN(C::StridedMatrix{DoubleFloat{T}}, At, B, Bline, j, mB, mA) w
         end
         for i=1:mA
 #            asum = _dot(view(At,:,i),Bline,Vec{Npref,T})
-            asum = _dot(mB,At,li[1,i],Bline,Vec{Npref,T})
+            asum = _dot(mB,At,li[1,i],Bline,1,Vec{Npref,T})
             C[i,j] = asum
         end
     end
@@ -128,7 +128,7 @@ function gemm_kernT(C::StridedMatrix{DoubleFloat{T}}, At, B, Bline, j, mB, mA) w
     end
     for i=1:mA
         # asum = _dot(view(At,:,i),Bline,Vec{Npref,T})
-        asum = _dot(mB,At,li[1,i],Bline,Vec{Npref,T})
+        asum = _dot(mB,At,li[1,i],Bline,1,Vec{Npref,T})
         C[i,j] = asum
     end
 end
