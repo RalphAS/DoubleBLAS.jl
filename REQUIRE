@@ -1,0 +1,3 @@
+julia 0.7
+DoubleFloats 0.4
+SIMD 2.0
