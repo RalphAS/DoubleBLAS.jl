@@ -30,6 +30,20 @@ the `set_mt_threshold(n::Real, problem::Symbol)` function.  Someday
 default values for a given system might be set during package
 installation or initialization, but currently they are notional.
 
+# Large problems
+
+For very large linear problems, one should use mixed-precision iterative
+refinement.  I didn't find an implementation in other well-known packages,
+so I provide `refinedldiv` here:
+```julia
+julia> n=4096; A=rand(Double64,n,n); x=rand(Double64,n);
+julia> F=lu(Float64.(A));
+julia> b=A*x;
+julia> xx,cvg = refinedldiv(A,F,b); # elapsed time: 1.4 sec
+julia> norm(xx-x)/norm(x)
+2.1020613807856875066955678325842648e-27
+```
+
 # Acknowledgements
 Most of the arithmetic was copied from DoubleFloats.jl and
 AccurateArithmetic.jl. Linear algebra routines were adapted from the Julia

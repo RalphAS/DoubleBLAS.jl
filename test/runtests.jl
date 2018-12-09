@@ -11,6 +11,7 @@ end
 Random.seed!(1234)
 
 include("level1.jl")
+include("refine.jl")
 
 function gemmcheck(T,m,n,k,tol)
     A = rand(T,m,k)

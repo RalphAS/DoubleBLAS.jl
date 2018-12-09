@@ -16,6 +16,8 @@ using LinearAlgebra: has_offset_axes, lapack_size, BlasInt, checknonsingular
 import LinearAlgebra: rmul!, lmul!, ldiv!
 # see subordinate files for some others
 
+export refinedldiv
+
 # most public functions are defined in LinearAlgebra
 
 ################################################################
@@ -28,8 +30,6 @@ const Npref = 8
 # There is no obvious penalty for large problems, and this
 # presumably gives better performance on 512b systems.
 # Kudos to the LLVM people.
-
-# Multi-threading config
 
 ################################################################
 # Multi-threading internals
@@ -141,4 +141,5 @@ include("triangular.jl")
 
 include("lu.jl")
 include("chol.jl")
+include("refine.jl")
 end # module
