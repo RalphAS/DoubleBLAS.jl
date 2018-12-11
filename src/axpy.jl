@@ -133,3 +133,86 @@ function _axpy!(n, a::Complex{DoubleFloat{T}},
     end
     yv
 end
+
+function rmul!(xv::StridedVecOrMat{DT},a::DT) where {DT <: Union{DoubleFloat{T}, Complex{DoubleFloat{T}}}} where T
+    _rmul!(xv,1,a,Vec{Npref,T})
+end
+
+# Pretend multiplication of these types is commutative.
+function lmul!(a::DT, xv::StridedVecOrMat{DT}) where {DT <: Union{DoubleFloat{T}, Complex{DoubleFloat{T}}}} where T
+    _rmul!(xv,1,a,Vec{Npref,T})
+end
+
+function _rmul!(xv::StridedVecOrMat{DoubleFloat{T}}, ix1::Integer,
+                a::DoubleFloat{T},
+                ::Type{Vec{N,T}}) where {N, T <: AbstractFloat}
+    n = length(xv)
+    ixoff = ix1-1
+    nd,nr = divrem(n, N)
+    ahi = HI(a)
+    alo = LO(a)
+
+    shi = Vec{N,T}(ahi)    # this lets us avoid @generated (Thanks, SIMD.jl!)
+    slo = Vec{N,T}(alo)
+    @inbounds begin
+        for i in 1:nd
+            i0=(i-1)*N
+            ix0 = i0 + ixoff
+            xhi = vgethi(xv,ix0,Vec{N,T})
+            xlo = vgetlo(xv,ix0,Vec{N,T})
+            zhi, zlo = dfvmul(xhi, xlo, shi, slo)
+            vputhilo!(xv,ix0,zhi,zlo)
+        end
+    end
+    (nr == 0) && return xv
+    @inbounds begin
+        @simd for i in (nd*N)+1:n
+            xv[ixoff+i] = a * xv[ixoff+i]
+        end
+    end
+    xv
+end
+
+function _rmul!(xv::StridedVecOrMat{Complex{DoubleFloat{T}}}, ix1::Integer,
+                a::Complex{DoubleFloat{T}},
+                ::Type{Vec{N,T}}) where {N, T <: AbstractFloat}
+    n = length(xv)
+    ixoff = ix1-1
+    nd,nr = divrem(n, N)
+    arhi = HI(real(a))
+    arlo = LO(real(a))
+    srhi = Vec{N,T}(arhi)
+    srlo = Vec{N,T}(arlo)
+    aihi = HI(imag(a))
+    ailo = LO(imag(a))
+    sihi = Vec{N,T}(aihi)
+    silo = Vec{N,T}(ailo)
+    @inbounds begin
+        for i in 1:nd
+            i0=(i-1)*N
+            ix0 = ixoff + i0
+
+            xrhi = vgethire(xv,ix0,Vec{N,T})
+            xrlo = vgetlore(xv,ix0,Vec{N,T})
+            xihi = vgethiim(xv,ix0,Vec{N,T})
+            xilo = vgetloim(xv,ix0,Vec{N,T})
+
+            z1hi, z1lo = dfvmul(xrhi, xrlo, srhi, srlo)
+            z2hi, z2lo = dfvmul(xrhi, xrlo, sihi, silo)
+            z3hi, z3lo = dfvmul(xihi, xilo, srhi, srlo)
+            z4hi, z4lo = dfvmul(xihi, xilo, sihi, silo)
+
+            zrhi, zrlo = dfvsub(z1hi, z1lo, z4hi, z4lo)
+            zihi, zilo = dfvadd(z2hi, z2lo, z3hi, z3lo)
+            vputhilo!(xv,ix0,zrhi,zrlo,zihi,zilo)
+
+        end
+    end
+    (nr == 0) && return xv
+    @inbounds begin
+        @simd for i in (nd*N)+1:n
+            xv[ixoff+i] = a * xv[ixoff+i]
+        end
+    end
+    xv
+end

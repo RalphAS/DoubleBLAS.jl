@@ -96,6 +96,35 @@ end
     end
 end
 
+squareQ(Q::LinearAlgebra.AbstractQ) = (sq = size(Q.factors, 1); lmul!(Q, Matrix{eltype(Q)}(I, sq, sq)))
+
+rectangularQ(Q::LinearAlgebra.AbstractQ) = convert(Array, Q)
+
+function qrcheck(T,k,m,tol)
+    A = rand(T,k,k)
+    qra = qr(A)
+    q, r = qra.Q, qra.R
+    e = eps(real(T))
+    @test norm(q' * squareQ(q) - I) < tol * k * e
+    @test norm(A - q * r) / norm(A) < tol * k * e
+    b = rand(T,k)
+    @test norm(A * (qra \ b) - b) / norm(b) < tol * k * e
+    A = rand(T,k,m)
+    qra = qr(A)
+    q, r = qra.Q, qra.R
+    e = eps(real(T))
+    @test norm(q' * squareQ(q) - I) < tol * k * e
+    @test norm(q' * rectangularQ(q) - I) < tol * k * e
+    @test norm(A - q * r) / norm(A) < tol * k * e
+end
+
+@testset "qr $T" for T in (Double64, Double32, Complex{Double64})
+    # make sure to exercise the clean-up loops
+    nA = 67
+    mA = 49
+    qrcheck(T,mA,nA,10)
+end
+
 function cholcheck(T,k,tol)
     A = rand(T,k,k)
     A = A * adjoint(A)
@@ -119,6 +148,7 @@ function cholcheck(T,k,tol)
     @test norm(x - xb,Inf) / norm(xb,Inf) < tol * κ * e
 end
 
+# put this last since it depends on patches to DoubleFloats
 @testset "chol $T" for T in (Double64, Double32, Complex{Double64})
     # make sure to exercise the clean-up loops
     nA = 67
