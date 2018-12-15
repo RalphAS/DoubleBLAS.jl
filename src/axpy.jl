@@ -25,10 +25,11 @@ function _axpy!(a::DoubleFloat{T}, xv::StridedVector{DoubleFloat{T}}, yv::Stride
 
             xhi = vgethi(xv,i0,Vec{N,T})
             xlo = vgetlo(xv,i0,Vec{N,T})
+            zhi, zlo = dfvmul(xhi, xlo, shi, slo)
+
             yhi = vgethi(yv,i0,Vec{N,T})
             ylo = vgetlo(yv,i0,Vec{N,T})
 
-            zhi, zlo = dfvmul(xhi, xlo, shi, slo)
             zhi, zlo = dfvadd(yhi, ylo, zhi, zlo)
             vputhilo!(yv,i0,zhi,zlo)
 
