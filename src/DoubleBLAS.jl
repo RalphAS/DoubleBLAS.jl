@@ -26,7 +26,7 @@ export refinedldiv
 # width of SIMD structures to use
 const Npref = 8
 # Using Npref = 8 on a system w/ 256b SIMD registers imposes a 10% penalty
-# for modest size Double64 problems.
+# for most modest-size Double64 problems.
 # There is no obvious penalty for large problems, and this
 # presumably gives better performance on 512b systems.
 # Kudos to the LLVM people.
@@ -136,6 +136,7 @@ include("ops.jl")
 include("dots.jl")
 include("axpy.jl")
 include("level2.jl")
+include("givens.jl")
 
 include("gemm.jl")
 include("triangular.jl")
