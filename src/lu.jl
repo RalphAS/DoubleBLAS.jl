@@ -62,12 +62,12 @@ end
 
 # Someday @threads will not stupefy the inference engine.
 
-@noinline function _mt_lu_loop(m,n,k,A,VT)
+@noinline function _mt_lu_loop(m,n,k,A,::Type{Vec{N,T}}) where {N,T}
     liA = LinearIndices(A)
     @threads for j = k+1:n
         @inbounds begin
             # axpy!(-A[k,j],view(A,k+1:m,k),view(A,k+1:m,j),VT)
-            _axpy!(m-k,-A[k,j],A,liA[k+1,k],A,liA[k+1,j],VT)
+            _axpy!(m-k,-A[k,j],A,liA[k+1,k],A,liA[k+1,j],Vec{N,T})
         end
     end
 end

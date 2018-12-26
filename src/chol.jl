@@ -39,11 +39,10 @@ function _chol!(A::AbstractMatrix{DoubleFloat{T}}, ::Type{UpperTriangular}) wher
 end
 
 # function barrier helps inference (even for non-threaded path)
-function _mt_uchol_loop(n,k,A,AkkInv,VT)
+function _mt_uchol_loop(n,k,A,AkkInv,::Type{Vec{N,T}}) where {N,T}
     liA = LinearIndices(A)
     @threads for j = k + 1:n
-        # A[k,j] -= dot(view(A,1:k-1,k),view(A,1:k-1,j))
-        @inbounds A[k,j] -= _dot(k-1,A,liA[1,k],A,liA[1,j],VT)
+        @inbounds A[k,j] -= _dot(k-1,A,liA[1,k],A,liA[1,j],Vec{N,T})
         @inbounds A[k,j] = AkkInv*A[k,j]
     end
 end
@@ -68,7 +67,7 @@ function _chol!(A::AbstractMatrix{DoubleFloat{T}}, ::Type{LowerTriangular}) wher
             AkkInv = inv(Akk)
             if k<n
                 if use_threads
-                    _mt_lchol_loop(n,k,A,AkkInv,Vec{Npref,T})
+                    _mt_lchol_loop(n,k,A,AkkInv)
                 else
                     for j = 1:k - 1
                         #@simd for i = k + 1:n
@@ -91,7 +90,7 @@ end
 #        @inbounds _axpy!(n-k,-A[k,j]',A,liA[k+1,j],A,liA[k+1,k],VT)
 #    end
 
-function _mt_lchol_loop(n,k,A,AkkInv,VT)
+function _mt_lchol_loop(n,k,A,AkkInv)
     liA = LinearIndices(A)
     @threads for i = k + 1:n
         # for j = 1:k - 1
