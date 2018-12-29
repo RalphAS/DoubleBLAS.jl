@@ -12,7 +12,6 @@ Random.seed!(1234)
 
 include("level1.jl")
 include("givens.jl")
-include("refine.jl")
 
 function gemmcheck(T,m,n,k,tol)
     A = rand(T,m,k)
@@ -62,6 +61,37 @@ end
         DoubleBLAS.set_mt_threshold(1.0e12,:gemm)
         gemmcheck(T,mA,nB,nA,1)
         DoubleBLAS.set_mt_threshold(t,:gemm)
+    end
+end
+
+function gemvcheck(T,m,n,k,tol)
+    A = rand(T,m,k)
+    B = rand(T,k)
+    C = rand(T,m)
+    Ab = big.(A)
+    Bb = big.(B)
+    C = A * B
+    Cb = Ab * Bb
+    e = (T <: Complex) ? eps(real(T)) : eps(T)
+    @test norm(Cb - big.(C),1) / (opnorm(A,1) * norm(B,1)) < tol * k * e
+
+    Ar = Matrix(reshape(A,k,m))
+    Abr = Matrix(reshape(Ab,k,m))
+    C = Ar' * B
+    Cb = Abr' * Bb
+    @test norm(Cb - big.(C),1) / (opnorm(A,1) * norm(B,1)) < tol * k * e
+end
+
+@testset "gemv $T" for T in (Double64, Double32)
+    # make sure to exercise the clean-up loops
+    mA, nA, nB = 129, 67, 33
+    gemvcheck(T,mA,nB,nA,1)
+    # also run below MT threshold
+    if Threads.nthreads() > 1
+        t = DoubleBLAS.get_mt_threshold(:gemv)
+        DoubleBLAS.set_mt_threshold(1.0e12,:gemv)
+        gemvcheck(T,mA,nB,nA,1)
+        DoubleBLAS.set_mt_threshold(t,:gemv)
     end
 end
 
@@ -163,3 +193,5 @@ end
         DoubleBLAS.set_mt_threshold(t,:chol)
     end
 end
+
+include("refine.jl")
