@@ -1,6 +1,15 @@
 # these do most of the work in Schur decomposition, SVD, etc.
 using LinearAlgebra: Givens
 
+function _floatmin2(::Type{T}) where {T}
+    twopar = 2one(T)
+    twopar^trunc(Integer,log(floatmin(T)/eps(T))/log(twopar)/twopar)
+end
+const d32fm2 = _floatmin2(Double32)
+const d64fm2 = _floatmin2(Double64)
+LinearAlgebra.floatmin2(::Type{Double32}) = d32fm2
+LinearAlgebra.floatmin2(::Type{Double64}) = d64fm2
+
 @noinline function lmul!(G::Givens{DT}, A::AbstractVecOrMat{DT}
                        ) where {DT <: Complex{DoubleFloat{T}}} where T
     has_offset_axes(A) && throw(ArgumentError("not implemented "
