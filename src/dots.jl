@@ -148,6 +148,75 @@ function _dot(n::Integer,
     s
 end
 
+function _dot(n::Integer,
+              xv::StridedVecOrMat{Complex{DoubleFloat{T}}}, ix1::Integer,
+              yv::StridedVecOrMat{Complex{DoubleFloat{T}}}, iy1::Integer,
+              ::Type{Vec{N,T}},tA=:c) where {N, T <: AbstractFloat}
+    z = zero(T)
+    srhi = Vec{N,T}(0)
+    srlo = Vec{N,T}(0)
+    sihi = Vec{N,T}(0)
+    silo = Vec{N,T}(0)
+    nd,nr = divrem(n, N)
+    ixoff = ix1-1
+    iyoff = iy1-1
+    @inbounds begin
+        for i in 1:nd
+            i0=(i-1)*N
+            ix0=ixoff + i0
+            iy0=iyoff + i0
+
+            xrhi = vgethire(xv,ix0,Vec{N,T})
+            xrlo = vgetlore(xv,ix0,Vec{N,T})
+            yrhi = vgethire(yv,iy0,Vec{N,T})
+            yrlo = vgetlore(yv,iy0,Vec{N,T})
+            xihi = vgethiim(xv,ix0,Vec{N,T})
+            xilo = vgetloim(xv,ix0,Vec{N,T})
+            yihi = vgethiim(yv,iy0,Vec{N,T})
+            yilo = vgetloim(yv,iy0,Vec{N,T})
+
+            z1hi, z1lo = dfvmul(xrhi, xrlo, yrhi, yrlo)
+            z2hi, z2lo = dfvmul(xrhi, xrlo, yihi, yilo)
+            z3hi, z3lo = dfvmul(xihi, xilo, yrhi, yrlo)
+            z4hi, z4lo = dfvmul(xihi, xilo, yihi, yilo)
+
+            if tA == :c
+                zrhi, zrlo = dfvadd(z1hi, z1lo, z4hi, z4lo)
+                zihi, zilo = dfvsub(z2hi, z2lo, z3hi, z3lo)
+            else
+                zrhi, zrlo = dfvsub(z1hi, z1lo, z4hi, z4lo)
+                zihi, zilo = dfvadd(z2hi, z2lo, z3hi, z3lo)
+            end
+
+            srhi, srlo = dfvadd(srhi, srlo, zrhi, zrlo)
+            sihi, silo = dfvadd(sihi, silo, zihi, zilo)
+        end
+    end
+    srhi, srlo = add_(srhi, srlo) # this should canonicalize all at once
+    sihi, silo = add_(sihi, silo)
+    sr = DoubleFloat((srhi[1], srlo[1]))
+    si = DoubleFloat((sihi[1], silo[1]))
+    for j=2:N
+        sr += DoubleFloat((srhi[j], srlo[j]))
+        si += DoubleFloat((sihi[j], silo[j]))
+    end
+    s = complex(sr,si)
+    (nr == 0) && return s
+    @inbounds begin
+        if tA == :c
+            @simd for i in (nd*N)+1:n
+                s += conj(xv[ixoff+i])*yv[iyoff+i]
+            end
+        else
+            @simd for i in (nd*N)+1:n
+                s += xv[ixoff+i]*yv[iyoff+i]
+            end
+        end
+    end
+    s
+end
+
+
 # reference version for testing
 function dot1(x::StridedVector{T}, y::StridedVector{T}) where {T}
     n = length(x)

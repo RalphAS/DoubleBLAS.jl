@@ -6,6 +6,7 @@ using DoubleFloats
 using LinearAlgebra
 
 using SIMD
+using UnsafeArrays
 
 using Base.Threads
 

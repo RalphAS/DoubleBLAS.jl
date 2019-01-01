@@ -1,3 +1,4 @@
 julia 0.7
 DoubleFloats 0.4
 SIMD 2.0
+UnsafeArrays 0.2.0
