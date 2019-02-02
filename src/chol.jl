@@ -12,8 +12,8 @@ function _chol!(A::AbstractMatrix{DT}, ::Type{UpperTriangular}
     use_threads = (nthreads() > 1) &&
         (Float64(n)^2 > chol_mt_threshold[])
     use_views = n > chol_dot_threshold[]
-    @inbounds begin
-        for k = 1:n
+    for k = 1:n
+        @inbounds begin
             if use_views
                 vk = uview(A,1:k-1,k)
                 A[k,k] -= dot(vk,vk)

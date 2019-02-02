@@ -19,9 +19,9 @@ function _axpy!(a::DoubleFloat{T}, xv::StridedVector{DoubleFloat{T}}, yv::Stride
 
     shi = Vec{N,T}(ahi)    # this lets us avoid @generated (Thanks, SIMD.jl!)
     slo = Vec{N,T}(alo)
-    @inbounds begin
-        for i in 1:nd
-            i0=(i-1)*N
+    for i in 1:nd
+        i0=(i-1)*N
+        @inbounds begin
 
             xhi = vgethi(xv,i0,Vec{N,T})
             xlo = vgetlo(xv,i0,Vec{N,T})
@@ -32,14 +32,12 @@ function _axpy!(a::DoubleFloat{T}, xv::StridedVector{DoubleFloat{T}}, yv::Stride
 
             zhi, zlo = dfvadd(yhi, ylo, zhi, zlo)
             vputhilo!(yv,i0,zhi,zlo)
-
         end
     end
     (nr == 0) && return yv
-    @inbounds begin
-        @simd for i in (nd*N)+1:n
-            yv[i] += a * xv[i]
-        end
+
+    @simd for i in (nd*N)+1:n
+        @inbounds  yv[i] += a * xv[i]
     end
     yv
 end
@@ -56,8 +54,8 @@ function _axpy!(n, a::DoubleFloat{T},
     slo = Vec{N,T}(alo)
     ixoff = ix1-1
     iyoff = iy1-1
-    @inbounds begin
-        for i in 1:nd
+    for i in 1:nd
+        @inbounds begin
             i0=(i-1)*N
             ix0 = ixoff + i0
             iy0 = iyoff + i0
@@ -74,10 +72,8 @@ function _axpy!(n, a::DoubleFloat{T},
         end
     end
     (nr == 0) && return yv
-    @inbounds begin
-        @simd for i in (nd*N)+1:n
-            yv[iyoff+i] += a * xv[ixoff+i]
-        end
+    @simd for i in (nd*N)+1:n
+        @inbounds yv[iyoff+i] += a * xv[ixoff+i]
     end
     yv
 end
@@ -97,8 +93,8 @@ function _axpy!(n, a::Complex{DoubleFloat{T}},
     silo = Vec{N,T}(ailo)
     ixoff = ix1-1
     iyoff = iy1-1
-    @inbounds begin
-        for i in 1:nd
+    for i in 1:nd
+        @inbounds begin
             i0=(i-1)*N
             ix0 = ixoff + i0
             iy0 = iyoff + i0
@@ -127,10 +123,8 @@ function _axpy!(n, a::Complex{DoubleFloat{T}},
         end
     end
     (nr == 0) && return yv
-    @inbounds begin
-        @simd for i in (nd*N)+1:n
-            yv[iyoff+i] += a * xv[ixoff+i]
-        end
+    @simd for i in (nd*N)+1:n
+        @inbounds yv[iyoff+i] += a * xv[ixoff+i]
     end
     yv
 end
@@ -155,8 +149,8 @@ function _rmul!(xv::StridedVecOrMat{DoubleFloat{T}}, ix1::Integer,
 
     shi = Vec{N,T}(ahi)    # this lets us avoid @generated (Thanks, SIMD.jl!)
     slo = Vec{N,T}(alo)
-    @inbounds begin
-        for i in 1:nd
+    for i in 1:nd
+        @inbounds begin
             i0=(i-1)*N
             ix0 = i0 + ixoff
             xhi = vgethi(xv,ix0,Vec{N,T})
@@ -166,10 +160,8 @@ function _rmul!(xv::StridedVecOrMat{DoubleFloat{T}}, ix1::Integer,
         end
     end
     (nr == 0) && return xv
-    @inbounds begin
-        @simd for i in (nd*N)+1:n
-            xv[ixoff+i] = a * xv[ixoff+i]
-        end
+    @simd for i in (nd*N)+1:n
+        @inbounds xv[ixoff+i] = a * xv[ixoff+i]
     end
     xv
 end
@@ -188,8 +180,8 @@ function _rmul!(xv::StridedVecOrMat{Complex{DoubleFloat{T}}}, ix1::Integer,
     ailo = LO(imag(a))
     sihi = Vec{N,T}(aihi)
     silo = Vec{N,T}(ailo)
-    @inbounds begin
-        for i in 1:nd
+    for i in 1:nd
+        @inbounds begin
             i0=(i-1)*N
             ix0 = ixoff + i0
 
@@ -210,10 +202,8 @@ function _rmul!(xv::StridedVecOrMat{Complex{DoubleFloat{T}}}, ix1::Integer,
         end
     end
     (nr == 0) && return xv
-    @inbounds begin
-        @simd for i in (nd*N)+1:n
-            xv[ixoff+i] = a * xv[ixoff+i]
-        end
+    @simd for i in (nd*N)+1:n
+        @inbounds xv[ixoff+i] = a * xv[ixoff+i]
     end
     xv
 end
