@@ -23,9 +23,7 @@ function _mt_generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
               tA::AbstractChar, tB::AbstractChar,
               A::StridedMatrix{DoubleFloat{T}},
               B::StridedMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
-    if has_offset_axes(C, A, B)
-        throw(ArgumentError("offset axes are not supported"))
-    end
+    require_one_based_indexing(C, A, B)
     mA, nA = lapack_size(tA, A)
     mB, nB = lapack_size(tB, B)
     if  mB != nA
@@ -62,9 +60,7 @@ function _generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
                             tA::AbstractChar, tB::AbstractChar,
               A::StridedMatrix{DoubleFloat{T}},
               B::StridedMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
-    if has_offset_axes(C, A, B)
-        throw(ArgumentError("offset axes are not supported"))
-    end
+    require_one_based_indexing(C, A, B)
     mA, nA = lapack_size(tA, A)
     mB, nB = lapack_size(tB, B)
     if  mB != nA
@@ -132,9 +128,7 @@ function generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
                             tA::AbstractChar, tB::AbstractChar,
               A::StridedMatrix{Complex{DoubleFloat{T}}},
               B::StridedMatrix{Complex{DoubleFloat{T}}}) where {T <: AbstractFloat}
-    if has_offset_axes(C, A, B)
-        throw(ArgumentError("offset axes are not supported"))
-    end
+    require_one_based_indexing(C, A, B)
     mA, nA = lapack_size(tA, A)
     mB, nB = lapack_size(tB, B)
     if  mB != nA

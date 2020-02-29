@@ -7,8 +7,7 @@ mt_thresholds[:qr] = qr_mt_threshold;
 function reflectorApply!(x::AbstractVector{DT}, τ::Number, A::StridedMatrix{DT}
                          ) where {DT <: Union{DoubleFloat{T},
                                               Complex{DoubleFloat{T}}}} where T
-    has_offset_axes(x) && throw(ArgumentError("not implemented "
-                                              * "for offset axes"))
+    require_one_based_indexing(x)
     m, n = size(A)
     if length(x) != m
         throw(DimensionMismatch("reflector has length $(length(x)), "
@@ -45,6 +44,8 @@ function _mt_refl_loop1(τ,A,x,m,j)
     end
 end
 
+const GEMV_WORKS = true
+if GEMV_WORKS
 import LinearAlgebra.generic_matvecmul!
 
 const gemv_mt_threshold = Ref(512.0)
@@ -53,7 +54,7 @@ const gemtv_mt_threshold = Ref(64.0)
 mt_thresholds[:gemtv] = gemtv_mt_threshold;
 
 function generic_matvecmul!(C::AbstractVector{DoubleFloat{T}}, tA, A::AbstractVecOrMat{DoubleFloat{T}}, B::AbstractVector{DoubleFloat{T}}) where {T <: AbstractFloat}
-    has_offset_axes(C, A, B) && throw(ArgumentError("offset axes are not supported"))
+    require_one_based_indexing(C, A, B)
     mB = length(B)
     mA, nA = lapack_size(tA, A)
     if mB != nA
@@ -132,3 +133,4 @@ function _mt_gemv_loop1(nA,A::AbstractVecOrMat{DoubleFloat{T}},liA,
         end
     end
 end
+end # if GEMV_WORKS

@@ -11,7 +11,16 @@ using UnsafeArrays
 using Base.Threads
 
 # steal some internals
-using LinearAlgebra: has_offset_axes, lapack_size, BlasInt, checknonsingular
+using LinearAlgebra: lapack_size, BlasInt, checknonsingular
+
+if VERSION < v"1.2"
+    using LinearAlgebra: has_offset_axes
+    require_one_based_indexing(x...) =
+        has_offset_axes(x...) && throw(ArgumentError("not implemented "
+                                                  * "for offset axes"))
+else
+    using Base: require_one_based_indexing
+end
 
 # stuff to extend
 import LinearAlgebra: rmul!, lmul!, ldiv!

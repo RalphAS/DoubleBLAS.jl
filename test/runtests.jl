@@ -82,6 +82,7 @@ function gemvcheck(T,m,n,k,tol)
     @test norm(Cb - big.(C),1) / (opnorm(A,1) * norm(B,1)) < tol * k * e
 end
 
+if DoubleBLAS.GEMV_WORKS
 @testset "gemv $T" for T in (Double64, Double32)
     # make sure to exercise the clean-up loops
     mA, nA, nB = 129, 67, 33
@@ -93,6 +94,7 @@ end
         gemvcheck(T,mA,nB,nA,1)
         DoubleBLAS.set_mt_threshold(t,:gemv)
     end
+end
 end
 
 function lucheck(T,k,tol)
@@ -179,8 +181,10 @@ function cholcheck(T,k,tol)
     @test norm(x - xb,Inf) / norm(xb,Inf) < tol * κ * e
 end
 
+# FIXME: add Complex{Double64} when Double64(-0.0) == 0
+
 # put this last since it depends on patches to DoubleFloats
-@testset "chol $T" for T in (Double64, Double32, Complex{Double64})
+@testset "chol $T" for T in (Double64, Double32)
     # make sure to exercise the clean-up loops
     nA = 67
     tol = 10

@@ -5,7 +5,7 @@ mt_thresholds[:trs] = trs_mt_threshold;
 
 function ldiv!(A::UpperTriangular{DoubleFloat{T}},
                    B::AbstractMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
-    @assert !has_offset_axes(A, B)
+    require_one_based_indexing(A, B)
     n = size(A.data, 2)
     m = size(B, 2)
     if !(n == size(B,1))
@@ -72,7 +72,7 @@ end
 
 function ldiv!(A::UnitLowerTriangular{DoubleFloat{T}},
                    B::AbstractMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
-    @assert !has_offset_axes(A, B)
+    require_one_based_indexing(A, B)
     n = size(A.data, 2)
     m = size(B, 2)
     if !(n == size(B,1))
@@ -127,7 +127,7 @@ end
 function naivesub!(A::UpperTriangular{DoubleFloat{T}},
                    b::AbstractVector{DoubleFloat{T}},
                    x::AbstractVector{DoubleFloat{T}} = b) where {T <: AbstractFloat}
-    @assert !has_offset_axes(A, b, x)
+    require_one_based_indexing(A, b, x)
     n = size(A, 2)
     if !(n == length(b) == length(x))
         throw(DimensionMismatch("second dimension of left hand side A, $n, length of output x, $(length(x)), and length of right hand side b, $(length(b)), must be equal"))
@@ -150,7 +150,7 @@ end
 function naivesub!(A::UnitLowerTriangular{DoubleFloat{T}},
                    b::StridedVector{DoubleFloat{T}},
                    x::AbstractVector{DoubleFloat{T}} = b) where {T <: AbstractFloat}
-    @assert !has_offset_axes(A, b, x)
+    require_one_based_indexing(A, b, x)
     n = size(A, 2)
     if !(n == length(b) == length(x))
         throw(DimensionMismatch("second dimension of left hand side A, $n, length of output x, $(length(x)), and length of right hand side b, $(length(b)), must be equal"))

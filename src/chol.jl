@@ -7,7 +7,7 @@ const chol_dot_threshold = Ref(48)
 
 function _chol!(A::AbstractMatrix{DT}, ::Type{UpperTriangular}
       ) where {DT <: Union{DoubleFloat{T},Complex{DoubleFloat{T}}}} where T
-    @assert !has_offset_axes(A)
+    require_one_based_indexing(A)
     n = checksquare(A)
     use_threads = (nthreads() > 1) &&
         (Float64(n)^2 > chol_mt_threshold[])
@@ -68,7 +68,7 @@ function _mt_uchol_loop(n,k,A,AkkInv,::Type{Vec{N,T}}) where {N,T}
 end
 
 function _chol!(A::AbstractMatrix{DoubleFloat{T}}, ::Type{LowerTriangular}) where T
-    @assert !has_offset_axes(A)
+    require_one_based_indexing(A)
     n = checksquare(A)
     use_threads = (nthreads() > 1) &&
         (Float64(n)^2 > chol_mt_threshold[])

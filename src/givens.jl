@@ -12,8 +12,7 @@ LinearAlgebra.floatmin2(::Type{Double64}) = d64fm2
 
 @noinline function lmul!(G::Givens{DT}, A::AbstractVecOrMat{DT}
                        ) where {DT <: Complex{DoubleFloat{T}}} where T
-    has_offset_axes(A) && throw(ArgumentError("not implemented "
-                                              * "for offset axes"))
+    require_one_based_indexing(A)
     m, n = size(A, 1), size(A, 2)
     if G.i2 > m
         throw(DimensionMismatch("column indices for rotation are outside the matrix"))
@@ -37,8 +36,7 @@ end
 
 @noinline function lmul!(G::Givens{DoubleFloat{T}},
                          A::StridedMatrix{DoubleFloat{T}}) where T
-    has_offset_axes(A) && throw(ArgumentError("not implemented "
-                                              * "for offset axes"))
+    require_one_based_indexing(A)
     m, n = size(A, 1), size(A, 2)
     if G.i2 > m
         throw(DimensionMismatch("column indices for rotation are outside the matrix"))
@@ -91,8 +89,7 @@ end
 @noinline function rmul!(A::AbstractMatrix{Complex{DoubleFloat{T}}},
                          G::Givens{Complex{DoubleFloat{T}}}
                        ) where T
-    has_offset_axes(A) && throw(ArgumentError("not implemented "
-                                              * "for offset axes"))
+    require_one_based_indexing(A)
     m, n = size(A, 1), size(A, 2)
     if G.i2 > n
         throw(DimensionMismatch("column indices for rotation are outside the matrix"))
@@ -115,8 +112,7 @@ end
 @noinline function rmul!(A::StridedMatrix{DoubleFloat{T}},
                          G::Givens{DoubleFloat{T}}
                          ) where T
-    has_offset_axes(A) && throw(ArgumentError("not implemented "
-                                              * "for offset axes"))
+    require_one_based_indexing(A)
     m, n = size(A, 1), size(A, 2)
     if G.i2 > m
         throw(DimensionMismatch("column indices for rotation are outside the matrix"))
