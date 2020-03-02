@@ -53,7 +53,10 @@ mt_thresholds[:gemv] = gemv_mt_threshold;
 const gemtv_mt_threshold = Ref(64.0)
 mt_thresholds[:gemtv] = gemtv_mt_threshold;
 
-function generic_matvecmul!(C::AbstractVector{DoubleFloat{T}}, tA, A::AbstractVecOrMat{DoubleFloat{T}}, B::AbstractVector{DoubleFloat{T}}) where {T <: AbstractFloat}
+function generic_matvecmul!(C::AbstractVector{DoubleFloat{R}}, tA,
+                            A::AbstractVecOrMat{DoubleFloat{T}},
+                            B::AbstractVector{DoubleFloat{T}},
+                            _add::MulAddMul = MulAddMul()) where {R <: AbstractFloat, T <: AbstractFloat}
     require_one_based_indexing(C, A, B)
     mB = length(B)
     mA, nA = lapack_size(tA, A)
@@ -70,17 +73,24 @@ function generic_matvecmul!(C::AbstractVector{DoubleFloat{T}}, tA, A::AbstractVe
         if use_threads
             liA = LinearIndices(A)
             @threads for k = 1:mA
-                @inbounds C[k] = _dot(nA,A,liA[1,k],B,1,Vec{Npref,T})
+                @inbounds s = _dot(nA,A,liA[1,k],B,1,Vec{Npref,T})
+                _modify!(_add, s, C, k)
             end
         else
             @inbounds for k = 1:mA
-                C[k] = dot(uview(A,:,k),B)
+                s = dot(uview(A,:,k),B)
+                _modify!(_add, s, C, k)
             end
         end
-    else
-        fill!(C,zero(T))
+    else # tA = 'N'
+        if !iszero(_add.beta)
+            C .*= _add.beta
+        else
+            fill!(C,zero(T))
+        end
         use_threads = (nthreads() > 1) &&
-            (Float64(mB)*Float64(mA) > gemv_mt_threshold[])
+            (Float64(mB)*Float64(mA) > gemv_mt_threshold[]) &&
+            _add.alpha == true && _add.beta == false
 
         if use_threads
             nt = nthreads()
@@ -99,12 +109,12 @@ function generic_matvecmul!(C::AbstractVector{DoubleFloat{T}}, tA, A::AbstractVe
                     _axpy!(nr,B[i],A,liA[j0,i],C,j0,Vec{Npref,T})
                 end
             end
-        else
+        else # unthreaded
             @inbounds begin
                 astride = stride(A,2)
                 for k=1:mB
                     ioff = (k-1)*astride
-                    b = B[k]
+                    b = _add(B[k], 0)
                     for i = 1:mA
                         C[i] += A[ioff + i] * b
                     end

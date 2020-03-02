@@ -11,7 +11,9 @@ using UnsafeArrays
 using Base.Threads
 
 # steal some internals
-using LinearAlgebra: lapack_size, BlasInt, checknonsingular
+using LinearAlgebra: lapack_size, BlasInt, checknonsingular, MulAddMul
+using LinearAlgebra: _modify!
+
 
 if VERSION < v"1.2"
     using LinearAlgebra: has_offset_axes
