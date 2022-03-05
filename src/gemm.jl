@@ -3,17 +3,37 @@ import LinearAlgebra.generic_matmatmul!
 const gemm_mt_threshold = Ref(64.0)
 mt_thresholds[:gemm] = gemm_mt_threshold;
 
-function generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
-             tA::AbstractChar, tB::AbstractChar,
-             A::StridedMatrix{DoubleFloat{T}},
-             B::StridedMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
+function generic_matmatmul!(C::AbstractMatrix{DoubleFloat{T}}, tA, tB, A::AbstractMatrix{DoubleFloat{T}}, B::AbstractMatrix{DoubleFloat{T}},
+                            _add::MulAddMul=MulAddMul()) where T
+    mA, nA = lapack_size(tA, A)
+    mB, nB = lapack_size(tB, B)
+    mC, nC = size(C)
+
+    if iszero(_add.alpha)
+        return _rmul_or_fill!(C, _add.beta)
+    end
+    if mA == nA == mB == nB == mC == nC == 2
+        return matmul2x2!(C, tA, tB, A, B, _add)
+    end
+    if mA == nA == mB == nB == mC == nC == 3
+        return matmul3x3!(C, tA, tB, A, B, _add)
+    end
+    _xgeneric_matmatmul!(C, tA, tB, A, B, _add)
+end
+function _xgeneric_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
+                            tA::AbstractChar, tB::AbstractChar,
+                            A::StridedMatrix{DoubleFloat{T}},
+                            B::StridedMatrix{DoubleFloat{T}},
+                            _add::MulAddMul
+                            ) where {T <: AbstractFloat}
 
     mA, nA = lapack_size(tA, A)
     mB, nB = lapack_size(tB, B)
-    if (nthreads() > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
+    if ((nthreads() > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
+        && _add.alpha == 1 && _add.beta == 0)
         _mt_generic_matmatmul!(C,tA,tB,A,B)
     else
-        _generic_matmatmul!(C,tA,tB,A,B)
+        __generic_matmatmul!(C,tA,tB,A,B,_add)
     end
     C
 end
@@ -56,10 +76,11 @@ function _mt_generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
     C
 end
 
-function _generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
+function __generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
                             tA::AbstractChar, tB::AbstractChar,
-              A::StridedMatrix{DoubleFloat{T}},
-              B::StridedMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
+                             A::StridedMatrix{DoubleFloat{T}},
+                             B::StridedMatrix{DoubleFloat{T}},
+                             _add::MulAddMul) where {T <: AbstractFloat}
     require_one_based_indexing(C, A, B)
     mA, nA = lapack_size(tA, A)
     mB, nB = lapack_size(tB, B)
@@ -68,6 +89,10 @@ function _generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
     end
     if size(C,1) != mA || size(C,2) != nB
         throw(DimensionMismatch("result matrix C dimensions $(size(C)), needs ($mA,$nB)"))
+    end
+
+    if iszero(_add.alpha) || isempty(A) || isempty(B)
+        return _rmul_or_fill!(C, _add.beta)
     end
 
     if tA == 'N'
@@ -91,7 +116,7 @@ function _generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
             for i=1:mA
                 # benchmarking showed view to beat uview here
                 asum = _dot(view(At,:,i),Bline,Vec{Npref,T})
-                C[i,j] = asum
+                _modify!(_add, asum, C, (i,j))
             end
         end
     end
@@ -124,10 +149,12 @@ function gemm_kernT(C::StridedMatrix{DoubleFloat{T}}, At, B, Bline, j, mB, mA) w
     end
 end
 
-function generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
+function _generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
                             tA::AbstractChar, tB::AbstractChar,
-              A::StridedMatrix{Complex{DoubleFloat{T}}},
-              B::StridedMatrix{Complex{DoubleFloat{T}}}) where {T <: AbstractFloat}
+                            A::StridedMatrix{Complex{DoubleFloat{T}}},
+                            B::StridedMatrix{Complex{DoubleFloat{T}}},
+                            _add::MulAddMul=MulAddMul()
+                            ) where {T <: AbstractFloat}
     require_one_based_indexing(C, A, B)
     mA, nA = lapack_size(tA, A)
     mB, nB = lapack_size(tB, B)
@@ -140,6 +167,10 @@ function generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
 
     (tB ∈ ['N','C','T']) || throw(ArgumentError("unrecognized value of tB"))
     (tA ∈ ['N','C','T']) || throw(ArgumentError("unrecognized value of tA"))
+
+    if iszero(_add.alpha) || isempty(A) || isempty(B)
+        return _rmul_or_fill!(C, _add.beta)
+    end
 
     reAt = Matrix{DoubleFloat{T}}(undef, nA, mA)
     imAt = Matrix{DoubleFloat{T}}(undef, nA, mA)
@@ -168,16 +199,18 @@ function generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
             end
         end
     end
-    if (nthreads() > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
+    if ((nthreads() > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
+        && _add.alpha == 1 && _add.beta == 0)
         _mt_gemmwrap(C,mA,mB,nB,tB,reAt,imAt,B,Vec{Npref,T})
     else
-        _gemmcore(C,mA,mB,nB,tB,reAt,imAt,B,Vec{Npref,T})
+        _gemmcore(C,mA,mB,nB,tB,reAt,imAt,B,Vec{Npref,T},_add)
     end
     C
 end
 
 function _gemmcore(C::AbstractMatrix{Complex{DoubleFloat{T}}},
-                   mA,mB,nB,tB,reAt,imAt,B,::Type{Vec{N,T}}
+                   mA,mB,nB,tB,reAt,imAt,B,::Type{Vec{N,T}},
+                   _add::MulAddMul
                    ) where {N,T <: AbstractFloat}
     reBline = zeros(DoubleFloat{T},mB)
     imBline = zeros(DoubleFloat{T},mB)
@@ -207,7 +240,8 @@ function _gemmcore(C::AbstractMatrix{Complex{DoubleFloat{T}}},
                 asum2 = _dot(uview(reAt,:,i),imBline,Vec{N,T})
                 asum3 = _dot(uview(imAt,:,i),reBline,Vec{N,T})
                 asum4 = _dot(uview(imAt,:,i),imBline,Vec{N,T})
-                C[i,j] = complex(asum1-asum4, asum2+asum3)
+                s = complex(asum1-asum4, asum2+asum3)
+                _modify!(_add, s, C, (i,j))
             end
         end
     end

@@ -6,8 +6,8 @@
 ![Lifecycle](https://img.shields.io/badge/lifecycle-retired-orange.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-archived-red.svg)
 ![Lifecycle](https://img.shields.io/badge/lifecycle-dormant-blue.svg) -->
-[![Build Status](https://travis-ci.org/RalphAS/DoubleBLAS.jl.svg?branch=master)](https://travis-ci.com/RalphAS/DoubleBLAS.jl)
-[![codecov.io](http://codecov.io/github/RalphAS/DoubleBLAS.jl/coverage.svg?branch=master)](http://codecov.io/github/RalphAS/DoubleBLAS.jl?branch=master)
+[![GitHub CI Build Status](https://github.com/RalphAS/DoubleBLAS.jl/workflows/CI/badge.svg)](https://github.com/RalphAS/DoubleBLAS.jl/actions)
+[![Coverage Status](http://codecov.io/github/RalphAS/DoubleBLAS.jl/coverage.svg?branch=main)](http://codecov.io/github/RalphAS/DoubleBLAS.jl?branch=master)
 
 This package is a draft implementation of SIMD-based basic linear algebra
 routines for matrices with element types from [DoubleFloats.jl](https://github.com/JuliaMath/DoubleFloats.jl).
