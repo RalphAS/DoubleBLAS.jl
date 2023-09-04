@@ -7,6 +7,8 @@ on:
     tags: '*'
 jobs:
   test:
+    env:
+      JULIA_NUM_THREADS: "2"
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -14,7 +16,7 @@ jobs:
       matrix:
         version:
           - '1'
-          - '1.7'
+          - '1.6'
           - 'nightly'
         os:
           - ubuntu-latest
@@ -23,7 +25,7 @@ jobs:
         arch:
           - x64
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
