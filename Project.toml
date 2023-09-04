@@ -1,6 +1,6 @@
 name = "DoubleBLAS"
 uuid = "17f6ae15-4096-5e65-bb53-f02caa04851c"
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 DoubleFloats = "497a8b3b-efae-58df-a0af-a86822472b78"
