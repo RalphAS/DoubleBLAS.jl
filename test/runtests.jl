@@ -2,11 +2,14 @@ using DoubleBLAS
 using LinearAlgebra
 using DoubleFloats: Double32, Double64
 using Test, Random
+using Aqua
 
 let nt = Threads.nthreads()
     nts = Sys.CPU_THREADS
     @info "running tests with $nt threads of $nts"
 end
+
+Aqua.test_all(DoubleBLAS; piracy=false)
 
 Random.seed!(1234)
 

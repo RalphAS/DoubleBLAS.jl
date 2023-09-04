@@ -1,9 +1,9 @@
 import LinearAlgebra.axpy!
 
-function axpy!(a::DoubleFloat{T}, xv::StridedVector{DoubleFloat{T}}, yv::StridedVector{DoubleFloat{T}})  where {N, T <: AbstractFloat}
+function axpy!(a::DoubleFloat{T}, xv::StridedVector{DoubleFloat{T}}, yv::StridedVector{DoubleFloat{T}})  where {T <: AbstractFloat}
     _axpy!(a,xv,yv,Vec{Npref,T})
 end
-function axpy!(a::Complex{DoubleFloat{T}}, xv::StridedVector{Complex{DoubleFloat{T}}}, yv::StridedVector{Complex{DoubleFloat{T}}})  where {N, T <: AbstractFloat}
+function axpy!(a::Complex{DoubleFloat{T}}, xv::StridedVector{Complex{DoubleFloat{T}}}, yv::StridedVector{Complex{DoubleFloat{T}}})  where {T <: AbstractFloat}
      n = length(xv)
     (length(yv) == n) || throw(ArgumentError("arguments must have equal lengths"))
     _axpy!(n,a,xv,1,yv,1,Vec{Npref,T})

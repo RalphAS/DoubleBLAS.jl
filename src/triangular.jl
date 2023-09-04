@@ -1,9 +1,13 @@
-import LinearAlgebra.naivesub!
+if VERSION < v"1.8"
+const naivesub! = LinearAlgebra.naivesub!
+else
+const naivesub! = LinearAlgebra.ldiv!
+end
 
 const trs_mt_threshold = Ref(64.0)
 mt_thresholds[:trs] = trs_mt_threshold;
 
-function ldiv!(A::UpperTriangular{DoubleFloat{T}},
+function ldiv!(A::UpperTriangular{DoubleFloat{T}, Matrix{T}},
                    B::AbstractMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
     require_one_based_indexing(A, B)
     n = size(A.data, 2)
@@ -70,8 +74,8 @@ end
     nothing
 end
 
-function ldiv!(A::UnitLowerTriangular{DoubleFloat{T}},
-                   B::AbstractMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
+function ldiv!(A::UnitLowerTriangular{DoubleFloat{T},Matrix{DoubleFloat{T}}},
+                   B::Matrix{DoubleFloat{T}}) where {T <: AbstractFloat}
     require_one_based_indexing(A, B)
     n = size(A.data, 2)
     m = size(B, 2)
@@ -124,9 +128,11 @@ end
     nothing
 end
 
-function naivesub!(A::UpperTriangular{DoubleFloat{T}},
-                   b::AbstractVector{DoubleFloat{T}},
-                   x::AbstractVector{DoubleFloat{T}} = b) where {T <: AbstractFloat}
+# FIXME: also need a method for UpperTriangular{D, Adjoint{D, Matrix{T}}},...
+# or (suggested) UT{D, S} where S<:Adjoint{D}
+function naivesub!(A::UpperTriangular{DoubleFloat{T},Matrix{DoubleFloat{T}}},
+                   b::Vector{DoubleFloat{T}},
+                   x::Vector{DoubleFloat{T}} = b) where {T <: AbstractFloat}
     require_one_based_indexing(A, b, x)
     n = size(A, 2)
     if !(n == length(b) == length(x))
@@ -147,9 +153,9 @@ function naivesub!(A::UpperTriangular{DoubleFloat{T}},
     x
 end
 
-function naivesub!(A::UnitLowerTriangular{DoubleFloat{T}},
-                   b::StridedVector{DoubleFloat{T}},
-                   x::AbstractVector{DoubleFloat{T}} = b) where {T <: AbstractFloat}
+function naivesub!(A::UnitLowerTriangular{DoubleFloat{T},Matrix{DoubleFloat{T}}},
+                   b::Vector{DoubleFloat{T}},
+                   x::Vector{DoubleFloat{T}} = b) where {T <: AbstractFloat}
     require_one_based_indexing(A, b, x)
     n = size(A, 2)
     if !(n == length(b) == length(x))

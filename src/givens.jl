@@ -7,8 +7,8 @@ function _floatmin2(::Type{T}) where {T}
 end
 const d32fm2 = _floatmin2(Double32)
 const d64fm2 = _floatmin2(Double64)
-LinearAlgebra.floatmin2(::Type{Double32}) = d32fm2
-LinearAlgebra.floatmin2(::Type{Double64}) = d64fm2
+# LinearAlgebra.floatmin2(::Type{Double32}) = d32fm2
+# LinearAlgebra.floatmin2(::Type{Double64}) = d64fm2
 
 @noinline function lmul!(G::Givens{DT}, A::AbstractVecOrMat{DT}
                        ) where {DT <: Complex{DoubleFloat{T}}} where T

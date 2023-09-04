@@ -24,14 +24,15 @@ function _xgeneric_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
                             tA::AbstractChar, tB::AbstractChar,
                             A::StridedMatrix{DoubleFloat{T}},
                             B::StridedMatrix{DoubleFloat{T}},
-                            _add::MulAddMul
+                            _add::MulAddMul;
+                            ntasks = _default_nt()
                             ) where {T <: AbstractFloat}
 
     mA, nA = lapack_size(tA, A)
     mB, nB = lapack_size(tB, B)
-    if ((nthreads() > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
+    if ((ntasks > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
         && _add.alpha == 1 && _add.beta == 0)
-        _mt_generic_matmatmul!(C,tA,tB,A,B)
+        _mt_generic_matmatmul!(C,tA,tB,A,B,ntasks)
     else
         __generic_matmatmul!(C,tA,tB,A,B,_add)
     end
@@ -40,9 +41,10 @@ end
 
 
 function _mt_generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
-              tA::AbstractChar, tB::AbstractChar,
-              A::StridedMatrix{DoubleFloat{T}},
-              B::StridedMatrix{DoubleFloat{T}}) where {T <: AbstractFloat}
+                                tA::AbstractChar, tB::AbstractChar,
+                                A::StridedMatrix{DoubleFloat{T}},
+                                B::StridedMatrix{DoubleFloat{T}},
+                                ntasks) where {T <: AbstractFloat}
     require_one_based_indexing(C, A, B)
     mA, nA = lapack_size(tA, A)
     mB, nB = lapack_size(tB, B)
@@ -59,18 +61,20 @@ function _mt_generic_matmatmul!(C::StridedMatrix{DoubleFloat{T}},
         At = A
     end
 
-    Blines = [zeros(DoubleFloat{T},mB) for id in 1:nthreads()]
+    Blines = [zeros(DoubleFloat{T},mB) for id in 1:ntasks]
     if tB == 'N'
-        @threads  for j = 1:nB
-            id = threadid()
-            Bline = Blines[id]
-            gemm_kernN(C, At, B, Bline, j, mB, mA)
+        @threads  for j = 1:ntasks
+            Bline = Blines[j]
+            for jj in _part_range(1:nB, ntasks, j)
+                gemm_kernN(C, At, B, Bline, jj, mB, mA)
+            end
         end
     else
-        @threads  for j = 1:nB
-            id = threadid()
-            Bline = Blines[id]
-            gemm_kernT(C, At, B, Bline, j, mB, mA)
+        @threads  for j = 1:ntasks
+            Bline = Blines[j]
+            for jj in _part_range(1:nB, ntasks, j)
+                gemm_kernT(C, At, B, Bline, jj, mB, mA)
+            end
         end
     end
     C
@@ -199,7 +203,7 @@ function _generic_matmatmul!(C::StridedMatrix{Complex{DoubleFloat{T}}},
             end
         end
     end
-    if ((nthreads() > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
+    if ((ntasks > 1) && (Float64(mB)*Float64(mA) > gemm_mt_threshold[])
         && _add.alpha == 1 && _add.beta == 0)
         _mt_gemmwrap(C,mA,mB,nB,tB,reAt,imAt,B,Vec{Npref,T})
     else
@@ -248,34 +252,37 @@ function _gemmcore(C::AbstractMatrix{Complex{DoubleFloat{T}}},
 end
 
 function _mt_gemmwrap(C::AbstractMatrix{Complex{DoubleFloat{T}}},
-                      mA,mB,nB,tB,reAt,imAt,B,::Type{Vec{N,T}}
+                      mA,mB,nB,tB,reAt,imAt,B,::Type{Vec{N,T}},
+                      nt::Integer
                       ) where {N, T <: AbstractFloat}
-    nt = nthreads()
     reBlines = [zeros(DoubleFloat{T},mB) for id in 1:nt]
     imBlines = [zeros(DoubleFloat{T},mB) for id in 1:nt]
     if tB == 'N'
-        @threads for j = 1:nB
-            id = threadid()
-            reBline = reBlines[id]
-            imBline = imBlines[id]
-            _mt_gemmcoreN(C, reAt, imAt, B, reBline, imBline, j, mB, mA,
-                          Vec{N,T})
+        @threads for j = 1:nt
+            reBline = reBlines[j]
+            imBline = imBlines[j]
+            for jj in _part_range(1:nB, nt, j)
+            _mt_gemmcoreN(C, reAt, imAt, B, reBline, imBline, jj, mB, mA,
+                Vec{N,T})
+            end
         end
     elseif tB == 'C'
-        @threads for j = 1:nB
-            id = threadid()
-            reBline = reBlines[id]
-            imBline = imBlines[id]
-            _mt_gemmcoreC(C, reAt, imAt, B, reBline, imBline, j, mB, mA,
-                          Vec{N,T})
+        @threads for j = 1:nt
+            reBline = reBlines[j]
+            imBline = imBlines[j]
+            for jj in _part_range(1:nB, nt, j)
+                _mt_gemmcoreC(C, reAt, imAt, B, reBline, imBline, jj, mB, mA,
+                              Vec{N,T})
+            end
         end
     elseif tB == 'T'
-        @threads for j = 1:nB
-            id = threadid()
-            reBline = reBlines[id]
-            imBline = imBlines[id]
-            _mt_gemmcoreT(C, reAt, imAt, B, reBline, imBline, j, mB, mA,
-                          Vec{N,T})
+        @threads for j = 1:nt
+            reBline = reBlines[j]
+            imBline = imBlines[j]
+            for jj in _part_range(1:nB, nt, j)
+                _mt_gemmcoreT(C, reAt, imAt, B, reBline, imBline, jj, mB, mA,
+                              Vec{N,T})
+            end
         end
     end
     nothing

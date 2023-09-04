@@ -1,6 +1,6 @@
 import LinearAlgebra.dot
 
-function dot(xv::StridedVector{DoubleFloat{T}}, yv::StridedVector{DoubleFloat{T}})  where {N, T <: AbstractFloat}
+function dot(xv::StridedVector{DoubleFloat{T}}, yv::StridedVector{DoubleFloat{T}})  where {T <: AbstractFloat}
     _dot(xv,yv,Vec{Npref,T})
 end
 
@@ -37,7 +37,7 @@ function _dot(xv::StridedVector{DoubleFloat{T}}, yv::StridedVector{DoubleFloat{T
 end
 
 function dot(xv::StridedVector{Complex{DoubleFloat{T}}},
-             yv::StridedVector{Complex{DoubleFloat{T}}})  where {N, T <: AbstractFloat}
+             yv::StridedVector{Complex{DoubleFloat{T}}})  where {T <: AbstractFloat}
     _dot(xv,yv,Vec{Npref,T})
 end
 

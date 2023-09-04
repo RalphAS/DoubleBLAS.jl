@@ -47,6 +47,7 @@ const Npref = 8
 # Multi-threading internals
 
 # TODO: implement set_num_threads
+_default_nt() = (VERSION > v"1.9") ? Threads.threadpoolsize() : Threads.nthreads()
 
 const mt_thresholds = Dict{Symbol,Any}()
 
@@ -74,6 +75,26 @@ function get_mt_threshold(problem::Symbol)
     end
     srcref = mt_thresholds[problem]
     srcref[]
+end
+
+function _part_range(rg, nt, it)
+    l,r = divrem(length(rg), nt)
+    if l == 0
+        it > r && return 0:0
+        l,r = 1,0
+    end
+    fst = firstindex(rg) + (it - 1) * l
+    lst = fst + l - 1
+    if r > 0
+        if it <= r
+            fst += (it-1)
+            lst += it
+        else
+            fst += r
+            lst += r
+        end
+    end
+    return fst:lst
 end
 
 ################################################################
